@@ -13,67 +13,9 @@ namespace PBSpyORCA
                 string lib = "test.pbl";
                 string app = "test";
                 string comments = "你好Hucxy";
-
-                File.Delete(lib);
-                var session = PBORCA_SessionOpen(125);
-                if (session == IntPtr.Zero)
-                {
-                    Console.WriteLine("打开PBORCA会话失败");
-                    return;
-                }
-                var ret = PBORCA_LibraryCreate(session, lib, comments);
-                if (ret != 0)
-                {
-                    Console.WriteLine("创建库失败");
-                    return;
-                }
-                ret = PBORCA_SessionSetLibraryList(session, [lib], 1);
-                if (ret != 0)
-                {
-                    Console.WriteLine("设置库列表失败");
-                    return;
-                }
-                string sra = "forward\r\nglobal transaction sqlca\r\nglobal dynamicdescriptionarea sqlda\r\nglobal dynamicstagingarea sqlsa\r\nglobal error error\r\nglobal message message\r\nend forward\r\n\r\nglobal type test from application\r\n end type\r\nglobal test test\r\n\r\non test.create\r\nappname = \"test\"\r\nmessage = create message\r\nsqlca = create transaction\r\nsqlda = create dynamicdescriptionarea\r\nsqlsa = create dynamicstagingarea\r\nerror = create error\r\nend on\r\n\r\non test.destroy\r\ndestroy( sqlca )\r\ndestroy( sqlda )\r\ndestroy( sqlsa )\r\ndestroy( error )\r\ndestroy( message )\r\nend on\r\n\r\nevent open;messagebox(\"提示\",\"你好Hucxy\")\r\nend event";
-                int len = Encoding.Unicode.GetByteCount(sra);
-                ret = PBORCA_CompileEntryImport(session, lib, app, PBORCA_TYPE.PBORCA_APPLICATION, comments, sra, len, IntPtr.Zero, IntPtr.Zero);
-                if (ret != 0)
-                {
-                    Console.WriteLine("导入编译对象失败");
-                    return;
-                }
-                ret = PBORCA_SessionSetCurrentAppl(session, lib, app);
-                if (ret != 0)
-                {
-                    Console.WriteLine("设置当前应用失败");
-                    return;
-                }
-
-                var sbComments = new StringBuilder(256);
-                ret = PBORCA_LibraryDirectory(session, lib, sbComments, 512, Marshal.GetFunctionPointerForDelegate<PBORCA_CallBack>(CallBack), IntPtr.Zero);
-                if (ret != 0)
-                {
-                    Console.WriteLine("获取库文件对象列表失败");
-                    return;
-                }
-                comments = sbComments.ToString();
-
-                var appInfo = new PBORCA_ENTRYINFO();
-                ret = PBORCA_LibraryEntryInformation(session, lib, app, PBORCA_TYPE.PBORCA_APPLICATION, ref appInfo);
-                if (ret != 0)
-                {
-                    Console.WriteLine("获取对象信息失败");
-                    return;
-                }
-
-                var sbSra = new StringBuilder(appInfo.lSourceSize + 2);
-                ret = PBORCA_LibraryEntryExport(session, lib, app, PBORCA_TYPE.PBORCA_APPLICATION, sbSra, appInfo.lSourceSize + 2);
-                if (ret != 0)
-                {
-                    Console.WriteLine("导出对象失败");
-                    return;
-                }
-                sra = sbSra.ToString();
-
+                string testSource = "forward\r\nglobal transaction sqlca\r\nglobal dynamicdescriptionarea sqlda\r\nglobal dynamicstagingarea sqlsa\r\nglobal error error\r\nglobal message message\r\nend forward\r\n\r\nglobal type test from application\r\n end type\r\nglobal test test\r\n\r\non test.create\r\nappname = \"test\"\r\nmessage = create message\r\nsqlca = create transaction\r\nsqlda = create dynamicdescriptionarea\r\nsqlsa = create dynamicstagingarea\r\nerror = create error\r\nend on\r\n\r\non test.destroy\r\ndestroy( sqlca )\r\ndestroy( sqlda )\r\ndestroy( sqlsa )\r\ndestroy( error )\r\ndestroy( message )\r\nend on\r\n\r\nevent open;messagebox(\"提示\",\"你好Hucxy\")\r\nend event";
+                int testSourceLen = Encoding.Unicode.GetByteCount(testSource);
+                string exePath = Path.Combine(runPath, "test.exe");
                 var exeInfo = new PBORCA_EXEINFO()
                 {
                     lpszCompanyName = "lpszCompanyName",
@@ -85,34 +27,119 @@ namespace PBSpyORCA
                     lpszProductVersion = "3.0.0.0",
                     lpszProductVersionNum = "4,0,0,0",
                 };
-                ret = PBORCA_SetExeInfo(session, ref exeInfo);
-                if (ret != 0)
-                {
-                    Console.WriteLine("设置编译信息失败");
-                    return;
-                }
 
-                string lpszExeName = Path.Combine(runPath, "test.exe");
-                ret = PBORCA_ExecutableCreate(session, lpszExeName, null, null, IntPtr.Zero, IntPtr.Zero, [0], 1, 0);
-                if (ret != 0)
-                {
-                    Console.WriteLine("创建可执行文件失败");
-                    return;
-                }
-
-                PBORCA_SessionClose(session);
                 File.Delete(lib);
+                var session = PBORCA_SessionOpen(125);
+                if (session == IntPtr.Zero)
+                {
+                    Console.WriteLine("打开PBORCA会话失败");
+                    Console.ReadKey();
+                    return;
+                }
+                try
+                {
+                    var ret = PBORCA_LibraryCreate(session, lib, comments);
+                    if (ret != 0)
+                    {
+                        Console.WriteLine("创建库失败");
+                        Console.ReadKey();
+                        return;
+                    }
+                    ret = PBORCA_SessionSetLibraryList(session, [lib], 1);
+                    if (ret != 0)
+                    {
+                        Console.WriteLine("设置库列表失败");
+                        Console.ReadKey();
+                        return;
+                    }
+
+                    ret = PBORCA_CompileEntryImport(session, lib, app, PBORCA_TYPE.PBORCA_APPLICATION, comments, testSource, testSourceLen, Marshal.GetFunctionPointerForDelegate<PBORCA_Callback>(CompilingObjectsCallBack), IntPtr.Zero);
+                    if (ret != 0)
+                    {
+                        Console.WriteLine("导入编译对象失败");
+                        Console.ReadKey();
+                        return;
+                    }
+                    ret = PBORCA_SessionSetCurrentAppl(session, lib, app);
+                    if (ret != 0)
+                    {
+                        Console.WriteLine("设置当前应用失败");
+                        Console.ReadKey();
+                        return;
+                    }
+
+                    var sbComments = new StringBuilder(256);
+                    ret = PBORCA_LibraryDirectory(session, lib, sbComments, 512, Marshal.GetFunctionPointerForDelegate<PBORCA_Callback>(LibraryDirectoryCallBack), IntPtr.Zero);
+                    if (ret != 0)
+                    {
+                        Console.WriteLine("获取库文件对象列表失败");
+                        Console.ReadKey();
+                        return;
+                    }
+                    comments = sbComments.ToString();
+
+                    var testSourceInfo = new PBORCA_ENTRYINFO();
+                    ret = PBORCA_LibraryEntryInformation(session, lib, app, PBORCA_TYPE.PBORCA_APPLICATION, ref testSourceInfo);
+                    if (ret != 0)
+                    {
+                        Console.WriteLine("获取对象信息失败");
+                        Console.ReadKey();
+                        return;
+                    }
+
+                    var testSourceSB = new StringBuilder(testSourceInfo.lSourceSize + 2);
+                    ret = PBORCA_LibraryEntryExport(session, lib, app, PBORCA_TYPE.PBORCA_APPLICATION, testSourceSB, testSourceInfo.lSourceSize + 2);
+                    if (ret != 0)
+                    {
+                        Console.WriteLine("导出对象失败");
+                        Console.ReadKey();
+                        return;
+                    }
+                    testSource = testSourceSB.ToString();
+
+                    ret = PBORCA_SetExeInfo(session, ref exeInfo);
+                    if (ret != 0)
+                    {
+                        Console.WriteLine("设置编译信息失败");
+                        Console.ReadKey();
+                        return;
+                    }
+
+                    ret = PBORCA_ExecutableCreate(session, exePath, null, null, Marshal.GetFunctionPointerForDelegate<PBORCA_Callback>(ExecutableCreateCallBack), IntPtr.Zero, [0], 1, 0);
+                    if (ret != 0)
+                    {
+                        Console.WriteLine("创建可执行文件失败");
+                        Console.ReadKey();
+                        return;
+                    }
+                }
+                finally
+                {
+                    PBORCA_SessionClose(session);
+                }
             }
+            Console.WriteLine("执行完成，按任意键退出...");
             Console.ReadKey();
         }
-
-        static void CallBack(IntPtr a1, IntPtr pUserData)
+        static void LibraryDirectoryCallBack(IntPtr pPBORCA_DIRENTRY, IntPtr pUserData)
         {
-            var stru = Marshal.PtrToStructure<PBORCA_DIRENTRY>(a1);
-            Console.WriteLine(string.Format("{0}\t{1}\t{2}\t{3}\t{4}", stru.lpszEntryName, stru.lEntrySize, stru.lCreateTime, stru.otEntryType, Encoding.Unicode.GetString(stru.szComments)));
+            var DIRENTRY = Marshal.PtrToStructure<PBORCA_DIRENTRY>(pPBORCA_DIRENTRY);
+            Console.WriteLine(string.Format("{0}\t{1}\t{2}\t{3}\t{4}", DIRENTRY.lpszEntryName, DIRENTRY.lEntrySize, DIRENTRY.lCreateTime, DIRENTRY.otEntryType, Encoding.Unicode.GetString(DIRENTRY.szComments)));
         }
 
-        internal enum PBORCA_TYPE
+        static void CompilingObjectsCallBack(IntPtr pPBORCA_COMPERR, IntPtr pUserData)
+        {
+            var COMPERR = Marshal.PtrToStructure<PBORCA_COMPERR>(pPBORCA_COMPERR);
+            Console.WriteLine(string.Format("{0}\t{1}\t{2}\t{3}\t{4}", COMPERR.iLevel, COMPERR.lpszMessageNumber, COMPERR.lpszMessageText, COMPERR.iColumnNumber, COMPERR.iLineNumber));
+        }
+
+        static void ExecutableCreateCallBack(IntPtr pPBORCA_LINKERR, IntPtr pUserData)
+        {
+            var LINKERR = Marshal.PtrToStructure<PBORCA_LINKERR>(pPBORCA_LINKERR);
+            Console.WriteLine(LINKERR.lpszMessageText);
+        }
+
+        public enum PBORCA_TYPE
         {
             PBORCA_APPLICATION,
             PBORCA_DATAWINDOW,
@@ -127,8 +154,9 @@ namespace PBSpyORCA
             PBORCA_PROXYOBJECT,
             PBORCA_BINARY
         }
+
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
-        struct PBORCA_DIRENTRY
+        public struct PBORCA_DIRENTRY
         {
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 512)]
             public byte[] szComments;
@@ -138,6 +166,7 @@ namespace PBSpyORCA
             public string lpszEntryName;
             public PBORCA_TYPE otEntryType;
         }
+
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
         public struct PBORCA_ENTRYINFO
         {
@@ -147,6 +176,19 @@ namespace PBSpyORCA
             public int lObjectSize;
             public int lSourceSize;
         }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct PBORCA_COMPERR
+        {
+            public int iLevel;
+            [MarshalAs(UnmanagedType.LPTStr)]
+            public string lpszMessageNumber;
+            [MarshalAs(UnmanagedType.LPTStr)]
+            public string lpszMessageText;
+            public uint iColumnNumber;
+            public uint iLineNumber;
+        }
+
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
         public struct PBORCA_EXEINFO
         {
@@ -168,7 +210,14 @@ namespace PBSpyORCA
             public string lpszProductVersionNum;
         }
 
-        public delegate void PBORCA_CallBack(IntPtr a1, IntPtr a2);
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct PBORCA_LINKERR
+        {
+            [MarshalAs(UnmanagedType.LPTStr)]
+            public string lpszMessageText;
+        }
+
+        public delegate void PBORCA_Callback(IntPtr pStruct, IntPtr pUserData);
 
         #region managing the ORCA session
         [DllImport("PBSpy.dll", CharSet = CharSet.Unicode)]
