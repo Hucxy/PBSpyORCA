@@ -1,4 +1,7 @@
-﻿using System.Runtime.InteropServices;
+﻿//最新全量代码在以下链接获取
+//https://gitee.com/hucxy/pbspy-orca
+//https://github.com/Hucxy/PBSpyORCA
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace PBSpyORCA
@@ -11,6 +14,7 @@ namespace PBSpyORCA
         const CharSet charSet = CharSet.Unicode;
 #endif
         const string orcaDll = "PBSpy.dll";
+        //自己测试pborca的时候注意PB版本的编码
         //const string orcaDll = "pborc90.dll";
         static void Main(/*string[] args*/)
         {
@@ -58,18 +62,42 @@ namespace PBSpyORCA
                 }
                 try
                 {
-                    File.Delete(lib);
-                    var ret = PBORCA_LibraryCreate(session, lib, comments);
-                    if (ret != 0)
+                    int ret;
+                    if (orcaDll == "PBSpy.dll")
                     {
-                        Console.WriteLine("创建库失败");
-                        Console.ReadKey();
-                        return;
+                        //因为pborca没有默认应用不支持导入编译对象，所以测试的话先用PBSpyORCA跑一遍，等测试pborca跑的时候不删除pbl（里面已经有了默认应用）
+#pragma warning disable CS0162 // 检测到无法访问的代码
+                        File.Delete(lib);
+                        ret = PBORCA_LibraryCreate(session, lib, comments);
+                        if (ret != 0)
+                        {
+                            Console.WriteLine("创建库失败");
+                            Console.ReadKey();
+                            return;
+                        }
+#pragma warning restore CS0162 // 检测到无法访问的代码
                     }
+
                     ret = PBORCA_SessionSetLibraryList(session, [lib], 1);
                     if (ret != 0)
                     {
                         Console.WriteLine("设置库列表失败");
+                        Console.ReadKey();
+                        return;
+                    }
+
+                    //ret = PBORCA_SessionSetCurrentAppl(session, lib, app);
+                    //if (ret != 0)
+                    //{
+                    //    Console.WriteLine("设置当前应用失败");
+                    //    Console.ReadKey();
+                    //    return;
+                    //}
+                    //下面的调用等价于上面的，至于为什么，需要自己思考
+                    ret = PBORCA_SessionSetCurrentAppl(new SessionSetCurrentAppl() { hORCASession = session, lpszApplLibName = lib, lpszApplName = app });
+                    if (ret != 0)
+                    {
+                        Console.WriteLine("设置当前应用失败");
                         Console.ReadKey();
                         return;
                     }
@@ -81,13 +109,7 @@ namespace PBSpyORCA
                         Console.ReadKey();
                         return;
                     }
-                    ret = PBORCA_SessionSetCurrentAppl(session, lib, app);
-                    if (ret != 0)
-                    {
-                        Console.WriteLine("设置当前应用失败");
-                        Console.ReadKey();
-                        return;
-                    }
+
 
                     var sbComments = new StringBuilder(256);
                     ret = PBORCA_LibraryDirectory(session, lib, sbComments, 256 * charLen, Marshal.GetFunctionPointerForDelegate<PBORCA_Callback>(LibraryDirectoryCallBack), IntPtr.Zero);
@@ -118,15 +140,26 @@ namespace PBSpyORCA
                     }
                     testSource = encoding.GetString(testSourceBytes);
 
-                    ret = PBORCA_SetExeInfo(session, ref exeInfo);
-                    if (ret != 0)
+                    if (orcaDll == "PBSpy.dll" || pbVersion >= 90)
                     {
-                        Console.WriteLine("设置编译信息失败");
-                        Console.ReadKey();
-                        return;
+                        //pborca只有PB9以上版本才可以设置exe信息，PBSpyORCA虽然也是一样，但是调用不会报错，只是没效果
+                        ret = PBORCA_SetExeInfo(session, ref exeInfo);
+                        if (ret != 0)
+                        {
+                            Console.WriteLine("设置编译信息失败");
+                            Console.ReadKey();
+                            return;
+                        }
                     }
-
-                    ret = PBORCA_ExecutableCreate(session, exePath, null, null, Marshal.GetFunctionPointerForDelegate<PBORCA_Callback>(ExecutableCreateCallBack), IntPtr.Zero, [0], 1, 0);
+                    string? icoPath = null;
+                    if (orcaDll != "PBSpy.dll")
+                    {
+#pragma warning disable CS0162 // 检测到无法访问的代码
+                        File.Delete(exePath);//pborca如果exe文件已存在，则无法创建，所以先删除，PBSpyORCA内部会自己判断，如果存在则先删除
+                        icoPath = Path.Combine(runPath, "pbdwedit.ico");//pborca没有图标不让创建exe，PBSpyORCA则没有这个限制
+#pragma warning restore CS0162 // 检测到无法访问的代码
+                    }
+                    ret = PBORCA_ExecutableCreate(session, exePath, icoPath, null, Marshal.GetFunctionPointerForDelegate<PBORCA_Callback>(ExecutableCreateCallBack), IntPtr.Zero, [0], 1, 0);
                     if (ret != 0)
                     {
                         Console.WriteLine("创建可执行文件失败");
@@ -225,7 +258,6 @@ namespace PBSpyORCA
         {
             public string lpszMessageText;
         }
-
         public delegate void PBORCA_Callback(IntPtr pStruct, IntPtr pUserData);
 #pragma warning disable SYSLIB1054 // 使用 “LibraryImportAttribute” 而不是 “DllImportAttribute” 在编译时生成 P/Invoke 封送代码
         #region managing the ORCA session
@@ -237,6 +269,15 @@ namespace PBSpyORCA
         public static extern int PBORCA_SessionSetLibraryList(IntPtr hORCASession, string[] pLibNames, int iNumberOfLibs);
         [DllImport(orcaDll, CharSet = charSet)]
         public static extern int PBORCA_SessionSetCurrentAppl(IntPtr hORCASession, string lpszApplLibName, string lpszApplName);
+        [StructLayout(LayoutKind.Sequential, Pack = 1, CharSet = charSet)]
+        public struct SessionSetCurrentAppl
+        {
+            public IntPtr hORCASession;
+            public string lpszApplLibName;
+            public string lpszApplName;
+        }
+        [DllImport(orcaDll, CharSet = charSet)]
+        public static extern int PBORCA_SessionSetCurrentAppl(SessionSetCurrentAppl stru);
         #endregion
 
         #region managing PowerBuilder libraries
