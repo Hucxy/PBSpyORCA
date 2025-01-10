@@ -10,29 +10,39 @@ namespace PBSpyORCA
 #else
         const CharSet charSet = CharSet.Unicode;
 #endif
-        const UnmanagedType stringType = charSet == CharSet.Ansi ? UnmanagedType.LPStr : UnmanagedType.LPWStr;
-
+        const string orcaDll = "PBSpy.dll";
+        //const string orcaDll = "pborc90.dll";
         static void Main(/*string[] args*/)
         {
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             Encoding encoding = charSet == CharSet.Ansi ? Encoding.GetEncoding("GBK") : Encoding.Unicode;
             int charLen = charSet == CharSet.Ansi ? 1 : 2;
-            int[] pbVersions = charSet == CharSet.Ansi ? [50, 60, 70, 80, 90] : [100, 105, 110, 115, 120, 125];
+            int[] pbVersions;
+#pragma warning disable CS0162 // 检测到无法访问的代码
+            if (orcaDll == "PBSpy.dll")
+            {
+                pbVersions = charSet == CharSet.Ansi ? [50, 60, 70, 80, 90] : [100, 105, 110, 115, 120, 125];
+            }
+            else
+            {
+                pbVersions = [int.Parse(orcaDll[5..^4])];
+            }
+#pragma warning restore CS0162 // 检测到无法访问的代码
             foreach (var pbVersion in pbVersions)
             {
                 string runPath = AppContext.BaseDirectory;
                 string lib = string.Format("test{0}.pbl", pbVersion);
                 string app = "test";
-                string comments = "你好Hucxy";
+                string comments = "注释comments";
                 string testSource = "forward\r\nglobal transaction sqlca\r\nglobal dynamicdescriptionarea sqlda\r\nglobal dynamicstagingarea sqlsa\r\nglobal error error\r\nglobal message message\r\nend forward\r\n\r\nglobal type test from application\r\n end type\r\nglobal test test\r\n\r\non test.create\r\nappname = \"test\"\r\nmessage = create message\r\nsqlca = create transaction\r\nsqlda = create dynamicdescriptionarea\r\nsqlsa = create dynamicstagingarea\r\nerror = create error\r\nend on\r\n\r\non test.destroy\r\ndestroy( sqlca )\r\ndestroy( sqlda )\r\ndestroy( sqlsa )\r\ndestroy( error )\r\ndestroy( message )\r\nend on\r\n\r\nevent open;messagebox(\"提示\",\"你好Hucxy\")\r\nend event";
                 int testSourceLen = encoding.GetByteCount(testSource);
                 string exePath = Path.Combine(runPath, string.Format("test{0}.exe", pbVersion));
                 var exeInfo = new PBORCA_EXEINFO()
                 {
-                    lpszCompanyName = "lpszCompanyName",
-                    lpszProductName = "lpszProductName",
-                    lpszDescription = "lpszDescription",
-                    lpszCopyright = "lpszCopyright",
+                    lpszCompanyName = "公司名称CompanyName",
+                    lpszProductName = "产品名称ProductName",
+                    lpszDescription = "文件说明Description",
+                    lpszCopyright = "版权Copyright",
                     lpszFileVersion = "1.0.0.0",
                     lpszFileVersionNum = "2,0,0,0",
                     lpszProductVersion = "3.0.0.0",
@@ -173,7 +183,6 @@ namespace PBSpyORCA
             public string szComments;
             public int lCreateTime;
             public int lEntrySize;
-            [MarshalAs(stringType)]
             public string lpszEntryName;
             public PBORCA_TYPE otEntryType;
         }
@@ -188,81 +197,70 @@ namespace PBSpyORCA
             public int lSourceSize;
         }
 
-        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        [StructLayout(LayoutKind.Sequential, Pack = 1, CharSet = charSet)]
         public struct PBORCA_COMPERR
         {
             public int iLevel;
-            [MarshalAs(stringType)]
             public string lpszMessageNumber;
-            [MarshalAs(stringType)]
             public string lpszMessageText;
             public uint iColumnNumber;
             public uint iLineNumber;
         }
 
-        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        [StructLayout(LayoutKind.Sequential, Pack = 1, CharSet = charSet)]
         public struct PBORCA_EXEINFO
         {
-            [MarshalAs(stringType)]
             public string lpszCompanyName;
-            [MarshalAs(stringType)]
             public string lpszProductName;
-            [MarshalAs(stringType)]
             public string lpszDescription;
-            [MarshalAs(stringType)]
             public string lpszCopyright;
-            [MarshalAs(stringType)]
             public string lpszFileVersion;
-            [MarshalAs(stringType)]
             public string lpszFileVersionNum;
-            [MarshalAs(stringType)]
             public string lpszProductVersion;
-            [MarshalAs(stringType)]
             public string lpszProductVersionNum;
         }
 
-        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        [StructLayout(LayoutKind.Sequential, Pack = 1, CharSet = charSet)]
         public struct PBORCA_LINKERR
         {
-            [MarshalAs(stringType)]
             public string lpszMessageText;
         }
 
         public delegate void PBORCA_Callback(IntPtr pStruct, IntPtr pUserData);
 #pragma warning disable SYSLIB1054 // 使用 “LibraryImportAttribute” 而不是 “DllImportAttribute” 在编译时生成 P/Invoke 封送代码
         #region managing the ORCA session
-        [DllImport("PBSpy.dll", CharSet = charSet)]
+        [DllImport(orcaDll, CharSet = charSet)]
         public static extern IntPtr PBORCA_SessionOpen(int pbVer);
-        [DllImport("PBSpy.dll", CharSet = charSet)]
+        [DllImport(orcaDll, CharSet = charSet)]
         public static extern void PBORCA_SessionClose(IntPtr hORCASession);
-        [DllImport("PBSpy.dll", CharSet = charSet)]
+        [DllImport(orcaDll, CharSet = charSet)]
         public static extern int PBORCA_SessionSetLibraryList(IntPtr hORCASession, string[] pLibNames, int iNumberOfLibs);
-        [DllImport("PBSpy.dll", CharSet = charSet)]
+        [DllImport(orcaDll, CharSet = charSet)]
         public static extern int PBORCA_SessionSetCurrentAppl(IntPtr hORCASession, string lpszApplLibName, string lpszApplName);
         #endregion
 
         #region managing PowerBuilder libraries
-        [DllImport("PBSpy.dll", CharSet = charSet)]
+        [DllImport(orcaDll, CharSet = charSet)]
         public static extern int PBORCA_LibraryCreate(IntPtr hORCASession, string lpszLibraryName, string lpszLibComments);
-        [DllImport("PBSpy.dll", CharSet = charSet)]
+        [DllImport(orcaDll, CharSet = charSet)]
         public static extern int PBORCA_LibraryDirectory(IntPtr hORCASession, string lpszLibName, StringBuilder lpszLibComments, int iCmntsBuffSize, IntPtr pListProc, IntPtr pUserData);
-        [DllImport("PBSpy.dll", CharSet = charSet)]
+        [DllImport(orcaDll, CharSet = charSet)]
         public static extern int PBORCA_LibraryEntryInformation(IntPtr hORCASession, string lpszLibraryName, string lpszEntryName, PBORCA_TYPE otEntryType, ref PBORCA_ENTRYINFO pEntryInformationBlock);
-        [DllImport("PBSpy.dll", CharSet = charSet)]
+        [DllImport(orcaDll, CharSet = charSet)]
         public static extern int PBORCA_LibraryEntryExport(IntPtr hORCASession, string lpszLibraryName, string lpszEntryName, PBORCA_TYPE otEntryType, byte[] lpszExportBuffer, int lExportBufferSize);
         #endregion
 
         #region importing and compiling PowerBuilder objects
-        [DllImport("PBSpy.dll", CharSet = charSet)]
+        [DllImport(orcaDll, CharSet = charSet)]
         public static extern int PBORCA_CompileEntryImport(IntPtr hORCASession, string lpszLibraryName, string lpszEntryName, PBORCA_TYPE otEntryType, string lpszComments, string lpszEntrySyntax, int lEntrySyntaxBuffSize, IntPtr pCompErrorProc, IntPtr pUserData);
-        [DllImport("PBSpy.dll", CharSet = charSet)]
+        [DllImport(orcaDll, CharSet = charSet)]
         public static extern int PBORCA_CompileEntryImportList(IntPtr hORCASession, string[] pLibraryNames, string[] pEntryNames, PBORCA_TYPE[] otEntryTypes, string[] pComments, string[] pEntrySyntaxBuffers, int[] pEntrySyntaxBuffSizes, int iNumberOfEntries, IntPtr pCompErrorProc, IntPtr pUserData);
         #endregion
 
         #region creating executables and dynamic libraries
-        [DllImport("PBSpy.dll", CharSet = charSet)]
+        [DllImport(orcaDll, CharSet = charSet)]
         public static extern int PBORCA_SetExeInfo(IntPtr hORCASession, ref PBORCA_EXEINFO pExeInfo);
-        [DllImport("PBSpy.dll", CharSet = charSet)]
+        [DllImport(orcaDll, CharSet = charSet)]
         public static extern int PBORCA_ExecutableCreate(IntPtr hORCASession, string lpszExeName, string? lpszIconName, string? lpszPBRName, IntPtr pLinkErrProc, IntPtr pUserData, int[] iPBDFlags, int iNumberOfPBDFlags, int lFlags);
         #endregion
 #pragma warning restore SYSLIB1054 // 使用 “LibraryImportAttribute” 而不是 “DllImportAttribute” 在编译时生成 P/Invoke 封送代码
