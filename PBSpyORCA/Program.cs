@@ -1,6 +1,9 @@
 ﻿//最新全量代码在以下链接获取
 //https://gitee.com/hucxy/pbspy-orca
 //https://github.com/Hucxy/PBSpyORCA
+#pragma warning disable CS0162 // 检测到无法访问的代码
+#pragma warning disable SYSLIB1054 // 使用 “LibraryImportAttribute” 而不是 “DllImportAttribute” 在编译时生成 P/Invoke 封送代码
+
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -13,17 +16,19 @@ namespace PBSpyORCA
 #else
         const CharSet charSet = CharSet.Unicode;
 #endif
-        const string orcaDll = "PBSpy.dll";
+        const string pbspyDll = "PBSpy.dll";
+        const string orcaDll = pbspyDll;
         //自己测试pborca的时候注意PB版本的编码
         //const string orcaDll = "pborc90.dll";
+
         static void Main(/*string[] args*/)
         {
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             Encoding encoding = charSet == CharSet.Ansi ? Encoding.GetEncoding("GBK") : Encoding.Unicode;
             int charLen = charSet == CharSet.Ansi ? 1 : 2;
             int[] pbVersions;
-#pragma warning disable CS0162 // 检测到无法访问的代码
-            if (orcaDll == "PBSpy.dll")
+
+            if (orcaDll == pbspyDll)
             {
                 pbVersions = charSet == CharSet.Ansi ? [50, 60, 70, 80, 90] : [100, 105, 110, 115, 120, 125];
             }
@@ -31,7 +36,6 @@ namespace PBSpyORCA
             {
                 pbVersions = [int.Parse(orcaDll[5..^4])];
             }
-#pragma warning restore CS0162 // 检测到无法访问的代码
             foreach (var pbVersion in pbVersions)
             {
                 string runPath = AppContext.BaseDirectory;
@@ -63,10 +67,9 @@ namespace PBSpyORCA
                 try
                 {
                     int ret;
-                    if (orcaDll == "PBSpy.dll")
+                    if (orcaDll == pbspyDll)
                     {
                         //因为pborca没有默认应用不支持导入编译对象，所以测试的话先用PBSpyORCA跑一遍，等测试pborca跑的时候不删除pbl（里面已经有了默认应用）
-#pragma warning disable CS0162 // 检测到无法访问的代码
                         File.Delete(lib);
                         ret = PBORCA_LibraryCreate(session, lib, comments);
                         if (ret != 0)
@@ -75,7 +78,6 @@ namespace PBSpyORCA
                             Console.ReadKey();
                             return;
                         }
-#pragma warning restore CS0162 // 检测到无法访问的代码
                     }
 
                     ret = PBORCA_SessionSetLibraryList(session, [lib], 1);
@@ -86,30 +88,43 @@ namespace PBSpyORCA
                         return;
                     }
 
-                    //ret = PBORCA_SessionSetCurrentAppl(session, lib, app);
-                    //if (ret != 0)
-                    //{
-                    //    Console.WriteLine("设置当前应用失败");
-                    //    Console.ReadKey();
-                    //    return;
-                    //}
-                    //下面的调用等价于上面的，至于为什么，需要自己思考
-                    ret = PBORCA_SessionSetCurrentAppl(new SessionSetCurrentAppl() { hORCASession = session, lpszApplLibName = lib, lpszApplName = app });
-                    if (ret != 0)
+                    if (orcaDll == pbspyDll)
                     {
-                        Console.WriteLine("设置当前应用失败");
-                        Console.ReadKey();
-                        return;
-                    }
+                        ret = PBORCA_CompileEntryImport(session, lib, app, PBORCA_TYPE.PBORCA_APPLICATION, comments, testSource, testSourceLen, Marshal.GetFunctionPointerForDelegate<PBORCA_Callback>(CompilingObjectsCallBack), IntPtr.Zero);
+                        if (ret != 0)
+                        {
+                            Console.WriteLine("导入编译对象失败");
+                            Console.ReadKey();
+                            return;
+                        }
 
-                    ret = PBORCA_CompileEntryImport(session, lib, app, PBORCA_TYPE.PBORCA_APPLICATION, comments, testSource, testSourceLen, Marshal.GetFunctionPointerForDelegate<PBORCA_Callback>(CompilingObjectsCallBack), IntPtr.Zero);
-                    if (ret != 0)
+                        ret = PBORCA_SessionSetCurrentAppl(session, lib, app);
+                        if (ret != 0)
+                        {
+                            Console.WriteLine("设置当前应用失败");
+                            Console.ReadKey();
+                            return;
+                        }
+                    }
+                    else
                     {
-                        Console.WriteLine("导入编译对象失败");
-                        Console.ReadKey();
-                        return;
-                    }
+                        //这种结构体为参数的调用等价于上面的调用，至于为什么，需要自己思考
+                        ret = PBORCA_SessionSetCurrentAppl(new SessionSetCurrentAppl() { hORCASession = session, lpszApplLibName = lib, lpszApplName = app });
+                        if (ret != 0)
+                        {
+                            Console.WriteLine("设置当前应用失败");
+                            Console.ReadKey();
+                            return;
+                        }
 
+                        ret = PBORCA_CompileEntryImport(session, lib, app, PBORCA_TYPE.PBORCA_APPLICATION, comments, testSource, testSourceLen, Marshal.GetFunctionPointerForDelegate<PBORCA_Callback>(CompilingObjectsCallBack), IntPtr.Zero);
+                        if (ret != 0)
+                        {
+                            Console.WriteLine("导入编译对象失败");
+                            Console.ReadKey();
+                            return;
+                        }
+                    }
 
                     var sbComments = new StringBuilder(256);
                     ret = PBORCA_LibraryDirectory(session, lib, sbComments, 256 * charLen, Marshal.GetFunctionPointerForDelegate<PBORCA_Callback>(LibraryDirectoryCallBack), IntPtr.Zero);
@@ -140,7 +155,7 @@ namespace PBSpyORCA
                     }
                     testSource = encoding.GetString(testSourceBytes);
 
-                    if (orcaDll == "PBSpy.dll" || pbVersion >= 90)
+                    if (orcaDll == pbspyDll || pbVersion >= 90)
                     {
                         //pborca只有PB9以上版本才可以设置exe信息，PBSpyORCA虽然也是一样，但是调用不会报错，只是没效果
                         ret = PBORCA_SetExeInfo(session, ref exeInfo);
@@ -152,12 +167,10 @@ namespace PBSpyORCA
                         }
                     }
                     string? icoPath = null;
-                    if (orcaDll != "PBSpy.dll")
+                    if (orcaDll != pbspyDll)
                     {
-#pragma warning disable CS0162 // 检测到无法访问的代码
                         File.Delete(exePath);//pborca如果exe文件已存在，则无法创建，所以先删除，PBSpyORCA内部会自己判断，如果存在则先删除
                         icoPath = Path.Combine(runPath, "pbdwedit.ico");//pborca没有图标不让创建exe，PBSpyORCA则没有这个限制
-#pragma warning restore CS0162 // 检测到无法访问的代码
                     }
                     ret = PBORCA_ExecutableCreate(session, exePath, icoPath, null, Marshal.GetFunctionPointerForDelegate<PBORCA_Callback>(ExecutableCreateCallBack), IntPtr.Zero, [0], 1, 0);
                     if (ret != 0)
@@ -175,6 +188,7 @@ namespace PBSpyORCA
             Console.WriteLine("执行完成，按任意键退出...");
             Console.ReadKey();
         }
+
         static void LibraryDirectoryCallBack(IntPtr pPBORCA_DIRENTRY, IntPtr pUserData)
         {
             var DIRENTRY = Marshal.PtrToStructure<PBORCA_DIRENTRY>(pPBORCA_DIRENTRY);
@@ -258,8 +272,9 @@ namespace PBSpyORCA
         {
             public string lpszMessageText;
         }
+
         public delegate void PBORCA_Callback(IntPtr pStruct, IntPtr pUserData);
-#pragma warning disable SYSLIB1054 // 使用 “LibraryImportAttribute” 而不是 “DllImportAttribute” 在编译时生成 P/Invoke 封送代码
+
         #region managing the ORCA session
         [DllImport(orcaDll, CharSet = charSet)]
         public static extern IntPtr PBORCA_SessionOpen(int pbVer);
@@ -304,6 +319,5 @@ namespace PBSpyORCA
         [DllImport(orcaDll, CharSet = charSet)]
         public static extern int PBORCA_ExecutableCreate(IntPtr hORCASession, string lpszExeName, string? lpszIconName, string? lpszPBRName, IntPtr pLinkErrProc, IntPtr pUserData, int[] iPBDFlags, int iNumberOfPBDFlags, int lFlags);
         #endregion
-#pragma warning restore SYSLIB1054 // 使用 “LibraryImportAttribute” 而不是 “DllImportAttribute” 在编译时生成 P/Invoke 封送代码
     }
 }
