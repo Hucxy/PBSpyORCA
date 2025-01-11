@@ -11,15 +11,24 @@ namespace PBSpyORCA
 {
     internal class Program
     {
+        const string pbspyDll = "PBSpy.dll";
+        //测试pborca的时候屏蔽这行代码，放开下面对应版本的orcaDll
+        const string orcaDll = pbspyDll;
 #if ANSI
         const CharSet charSet = CharSet.Ansi;
+        //const string orcaDll = "pborc60.dll";
+        //const string orcaDll = "pborc70.dll";
+        //const string orcaDll = "pborc80.dll";
+        //const string orcaDll = "pborc90.dll";
 #else
         const CharSet charSet = CharSet.Unicode;
+        //const string orcaDll = "pborc100.dll";
+        //const string orcaDll = "pborc105.dll";
+        //const string orcaDll = "pborc110.dll";
+        //const string orcaDll = "pborc115.dll";
+        //const string orcaDll = "pborc120.dll";
+        //const string orcaDll = "pborc125.dll";
 #endif
-        const string pbspyDll = "PBSpy.dll";
-        const string orcaDll = pbspyDll;
-        //自己测试pborca的时候注意PB版本的编码
-        //const string orcaDll = "pborc90.dll";
 
         static void Main(/*string[] args*/)
         {
