@@ -1,7 +1,7 @@
 # PBSpyORCA
  PBSpy.dll目前基本可以平替PBORCxxx.dll，但是依赖更少，并且不需要注(Po)册(Jie)。  
  使用方法跟PBORC保持一致，区别是PBORCA_SessionOpen方法多了一个PB版本的int类型参数，如果是PB9则传入90，PB12.5传入125。  
- 目前已支持的方法(部分方法可能有BUG，欢迎测试和PR)：
+ 目前已支持的方法(部分方法可能有BUG，欢迎测试和PR)：  
  PBORCA_SessionOpen  
  PBORCA_SessionClose  
  PBORCA_SessionSetLibraryList  
