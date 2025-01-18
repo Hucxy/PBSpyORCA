@@ -49,6 +49,7 @@ namespace PBSpyORCA
             {
                 string runPath = AppContext.BaseDirectory;
                 string lib = string.Format("test{0}.pbl", pbVersion);
+                string[] libList = [lib];
                 string app = "test";
                 string comments = "注释comments";
                 string testSource = "forward\r\nglobal transaction sqlca\r\nglobal dynamicdescriptionarea sqlda\r\nglobal dynamicstagingarea sqlsa\r\nglobal error error\r\nglobal message message\r\nend forward\r\n\r\nglobal type test from application\r\n end type\r\nglobal test test\r\n\r\non test.create\r\nappname = \"test\"\r\nmessage = create message\r\nsqlca = create transaction\r\nsqlda = create dynamicdescriptionarea\r\nsqlsa = create dynamicstagingarea\r\nerror = create error\r\nend on\r\n\r\non test.destroy\r\ndestroy( sqlca )\r\ndestroy( sqlda )\r\ndestroy( sqlsa )\r\ndestroy( error )\r\ndestroy( message )\r\nend on\r\n\r\nevent open;messagebox(\"提示\",\"你好Hucxy\")\r\nend event";
@@ -89,7 +90,7 @@ namespace PBSpyORCA
                         }
                     }
 
-                    ret = PBORCA_SessionSetLibraryList(session, [lib], 1);
+                    ret = PBORCA_SessionSetLibraryList(session, libList, 1);
                     if (ret != 0)
                     {
                         Console.WriteLine("设置库列表失败");
@@ -181,7 +182,8 @@ namespace PBSpyORCA
                         File.Delete(exePath);//pborca如果exe文件已存在，则无法创建，所以先删除，PBSpyORCA内部会自己判断，如果存在则先删除
                         icoPath = Path.Combine(runPath, "pbdwedit.ico");//pborca没有图标不让创建exe，PBSpyORCA则没有这个限制
                     }
-                    ret = PBORCA_ExecutableCreate(session, exePath, icoPath, null, Marshal.GetFunctionPointerForDelegate<PBORCA_Callback>(ExecutableCreateCallBack), IntPtr.Zero, [0], 1, 0);
+                    var iPBDFlags = new int[libList.Length];
+                    ret = PBORCA_ExecutableCreate(session, exePath, icoPath, null, Marshal.GetFunctionPointerForDelegate<PBORCA_Callback>(ExecutableCreateCallBack), IntPtr.Zero, iPBDFlags, iPBDFlags.Length, 0);
                     if (ret != 0)
                     {
                         Console.WriteLine("创建可执行文件失败");
