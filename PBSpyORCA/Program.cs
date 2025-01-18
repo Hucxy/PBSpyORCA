@@ -39,7 +39,7 @@ namespace PBSpyORCA
 
             if (orcaDll == pbspyDll)
             {
-                pbVersions = charSet == CharSet.Ansi ? [50, 60, 70, 80, 90] : [100, 105, 110, 115, 120, 125];
+                pbVersions = charSet == CharSet.Ansi ? [50, 60, 70, 80, 90] : [100, 105, 110, 115, 120, 125, 126, 150, 170, 180, 190];
             }
             else
             {
