@@ -1,4 +1,4 @@
-﻿//最新全量代码在以下链接获取
+﻿//PBSpy.dll、PBSDK以及最新全量代码在以下链接获取
 //https://gitee.com/hucxy/pbspy-orca
 //https://github.com/Hucxy/PBSpyORCA
 #pragma warning disable CS0162 // 检测到无法访问的代码
