@@ -30,7 +30,7 @@ namespace PBSpyORCA
         //const string orcaDll = "pborc125.dll";
 #endif
 
-        static void Main(/*string[] args*/)
+        static void Main(string[] args)
         {
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             Encoding encoding = charSet == CharSet.Ansi ? Encoding.GetEncoding("GBK") : Encoding.Unicode;
@@ -44,6 +44,10 @@ namespace PBSpyORCA
             else
             {
                 pbVersions = [int.Parse(orcaDll[5..^4])];
+            }
+            if (args.Length > 0)
+            {
+                pbVersions = [int.Parse(args[0])];
             }
             foreach (var pbVersion in pbVersions)
             {
