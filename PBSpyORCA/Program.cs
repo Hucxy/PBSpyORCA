@@ -16,6 +16,7 @@ namespace PBSpyORCA
         const string orcaDll = pbspyDll;
 #if ANSI
         const CharSet charSet = CharSet.Ansi;
+        //const string orcaDll = "pborc050.dll";
         //const string orcaDll = "pborc60.dll";
         //const string orcaDll = "pborc70.dll";
         //const string orcaDll = "pborc80.dll";
@@ -28,6 +29,12 @@ namespace PBSpyORCA
         //const string orcaDll = "pborc115.dll";
         //const string orcaDll = "pborc120.dll";
         //const string orcaDll = "pborc125.dll";
+        //const string orcaDll = "pborc150.dll";
+        //const string orcaDll = "pborc126.dll";
+        //const string orcaDll = "pborc170.dll";
+        //const string orcaDll = "pborc180.dll";
+        //const string orcaDll = "pborc190.dll";
+        //const string orcaDll = "pborc.dll";
 #endif
 
         static void Main(string[] args)
