@@ -15,14 +15,13 @@ namespace PBSpyORCA
         //测试pborca的时候屏蔽这行代码，放开下面对应版本的orcaDll
         const string orcaDll = pbspyDll;
 #if ANSI
-        const CharSet charSet = CharSet.Ansi;
         //const string orcaDll = "pborc050.dll";
         //const string orcaDll = "pborc60.dll";
         //const string orcaDll = "pborc70.dll";
         //const string orcaDll = "pborc80.dll";
         //const string orcaDll = "pborc90.dll";
+        const CharSet charSet = CharSet.Ansi;
 #else
-        const CharSet charSet = CharSet.Unicode;
         //const string orcaDll = "pkorc20.dll";
         //const string orcaDll = "pkorc25.dll";
         //const string orcaDll = "pborc100.dll";
@@ -37,6 +36,7 @@ namespace PBSpyORCA
         //const string orcaDll = "pborc180.dll";
         //const string orcaDll = "pborc190.dll";
         //const string orcaDll = "pborc.dll";
+        const CharSet charSet = CharSet.Unicode;
 #endif
 
         static void Main(string[] args)
@@ -81,7 +81,15 @@ namespace PBSpyORCA
                     lpszProductVersionNum = "4,0,0,0",
                 };
 
-                var session = PBORCA_SessionOpen(pbVersion);
+                IntPtr session;
+                if (orcaDll == pbspyDll)
+                {
+                    session = PBORCA_SessionOpen(pbVersion);
+                }
+                else
+                {
+                    session = PBORCA_SessionOpen();
+                }
                 if (session == IntPtr.Zero)
                 {
                     Console.WriteLine("打开PBORCA会话失败");
@@ -301,6 +309,8 @@ namespace PBSpyORCA
         public delegate void PBORCA_Callback(IntPtr pStruct, IntPtr pUserData);
 
         #region managing the ORCA session
+        [DllImport(orcaDll, CharSet = charSet)]
+        public static extern IntPtr PBORCA_SessionOpen();
         [DllImport(orcaDll, CharSet = charSet)]
         public static extern IntPtr PBORCA_SessionOpen(int pbVer);
         [DllImport(orcaDll, CharSet = charSet)]

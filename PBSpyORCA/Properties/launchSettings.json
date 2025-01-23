@@ -1,8 +1,7 @@
 {
   "profiles": {
     "PBSpyORCA": {
-      "commandName": "Project",
-      "commandLineArgs": "250"
+      "commandName": "Project"
     }
   }
 }
