@@ -23,6 +23,8 @@ namespace PBSpyORCA
         //const string orcaDll = "pborc90.dll";
 #else
         const CharSet charSet = CharSet.Unicode;
+        //const string orcaDll = "pkorc20.dll";
+        //const string orcaDll = "pkorc25.dll";
         //const string orcaDll = "pborc100.dll";
         //const string orcaDll = "pborc105.dll";
         //const string orcaDll = "pborc110.dll";
@@ -46,7 +48,7 @@ namespace PBSpyORCA
 
             if (orcaDll == pbspyDll)
             {
-                pbVersions = charSet == CharSet.Ansi ? [50, 60, 70, 80, 90] : [100, 105, 110, 115, 120, 125, 126, 150, 170, 180, 190];
+                pbVersions = charSet == CharSet.Ansi ? [50, 60, 70, 80, 90] : [20, 25, 100, 105, 110, 115, 120, 125, 126, 150, 170, 180, 190];
             }
             else
             {
@@ -58,8 +60,9 @@ namespace PBSpyORCA
             }
             foreach (var pbVersion in pbVersions)
             {
+                string pbl = pbVersion < 50 ? "pkl" : "pbl";
                 string runPath = AppContext.BaseDirectory;
-                string lib = string.Format("test{0}.pbl", pbVersion);
+                string lib = string.Format("test{0}.{1}", pbVersion, pbl);
                 string[] libList = [lib];
                 string app = "test";
                 string comments = "注释comments";
