@@ -84,7 +84,7 @@ namespace PBSpyORCA
                 IntPtr session;
                 if (orcaDll == pbspyDll)
                 {
-                    session = PBORCA_SessionOpen(pbVersion);
+                    session = PBORCA_SessionOpenWithVersion(pbVersion);
                 }
                 else
                 {
@@ -312,7 +312,7 @@ namespace PBSpyORCA
         [DllImport(orcaDll, CharSet = charSet)]
         public static extern IntPtr PBORCA_SessionOpen();
         [DllImport(orcaDll, CharSet = charSet)]
-        public static extern IntPtr PBORCA_SessionOpen(int pbVer);
+        public static extern IntPtr PBORCA_SessionOpenWithVersion(int pbVer);
         [DllImport(orcaDll, CharSet = charSet)]
         public static extern void PBORCA_SessionClose(IntPtr hORCASession);
         [DllImport(orcaDll, CharSet = charSet)]
