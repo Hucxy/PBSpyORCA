@@ -3,7 +3,7 @@
  PBSpy.dll支持PB5-PB2025和PPB2.0-PPB2.5，共计21个版本。  
  使用方法：
      方法一：
-        直接把PBSpy.dll文件改名称为PBORCxxx.dll。
+         直接把PBSpy.dll文件改名称为PBORCxxx.dll。
      方法二：
          使用PBORCA_SessionOpenWithVersion打开会话，该方法比PBORCA_SessionOpen多了一个PB版本的int类型参数。
          如果是PPB2.5则传入25，PB9则传入90，PB12.5传入125，PB2022传入220。
